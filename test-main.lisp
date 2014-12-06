@@ -1,0 +1,5 @@
+(load "main.lisp")
+(defparameter file (open "test-phrases.txt"))
+(do ((eof nil (not (listen file))))
+  (eof)
+  (print (wfp-checker (read-line file))))
