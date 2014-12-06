@@ -9,6 +9,7 @@
 (IMPLIES      (P)    (Q))
 (OR (NOT (NOT (P))) (Q))
 
+(q)
 (JUNK (P) (Q))
 (NOT1 (P) (Q))
 (P1Q2)

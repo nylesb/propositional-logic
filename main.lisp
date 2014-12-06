@@ -8,42 +8,55 @@
     ;;; properly paired. Propositions use valid Lisp syntax, so the read function
     ;;; will give an error if the proposition is not a well-formed S-exp.
     ;;; Then verify that the phrase only contains valid syntax and atoms.
-    (princ (format nil "Working on ~A~%  " input))
     (with-input-from-string (phrase input)
       (unless (ignore-errors (read phrase))
         (return-from wfp-checker nil)))
     (do* ((i 0 (+ i 1)))
       ((equal i (length input)))
       (let* ((next-char (char input i))
-             (symbol (make-array 1 :element-type 'character
-                                   :fill-pointer 1
-                                   :adjustable t
-                                   :initial-element next-char)))
-        ;; Verify we have single uppercase, one uppercase followed by numbers,
-        ;; or a valid syntax word
-        (when (upper-case-p next-char)
+             (symbol (make-array 0 :element-type 'character
+                                   :fill-pointer 0
+                                   :adjustable t)))
+        ;; Obtain the next symbol
+        (when (equal next-char (char "(" 0))
+          (princ next-char)
           (setf next-char (char input (setf i (+ i 1))))
-          (if (equal next-char #\Space) ; Was single uppercase
-            (return))
-          (when (upper-case-p next-char) ; Obtain full word
-            (loop do
-              (vector-push-extend next-char symbol)
-              (setf next-char (char input (setf i (+ i 1))))
-             while (not (member next-char (list #\Space (char "(" 0) ))))
-            (unless (find symbol syntax :test #'equal) ; Check it is syntax
-              (return-from wfp-checker nil)))
-          (when (digit-char-p next-char) ; Must be only numbers now
-            (loop do (setf next-char (char input (setf i (+ i 1))))
-              (when (equal next-char (char ")" 0))
+          (if (equal #\" next-char) ; Checks for quoted atomiic expressions
+              (progn (vector-push-extend next-char symbol)
+                     (loop do (setf next-char (char input (setf i (+ i 1))))
+                        (vector-push-extend next-char symbol)
+                      while (not (equal next-char #\")))
+                     (setf next-char (char input (setf i (+ i 1))))
+                     (unless (equal next-char (char ")" 0)) ; ) must follow closing quote
+                       (retun-from wfp-checker nil)))
+              (loop do ; Otherwise, just build up our symbol
                 (vector-push-extend next-char symbol)
-                (return))
-              (if (not (digit-char-p next-char)) ; Invalid form
-                  (return-from wfp-checker nil))
-              (vector-push-extend next-char symbol)
-             while (not (equal next-char (char ")" 0))))))
-        ;; Discard quotes
-        (when (equal #\" next-char)
-          (loop do (setf next-char (char input (setf i (+ i 1))))
-            while (not (equal next-char #\"))))
-        (princ symbol)))
+                (setf next-char (char input (setf i (+ i 1))))
+               while (not (member next-char (list #\Space (char "(" 0) (char ")" 0)))))))
+        
+        ;; Verify symbol is of the proper form
+        (block validate
+          (when (equal symbol "") ; Nothing to process
+            (return-from validate nil))
+          (when (and (equal (char symbol 0) #\") ; Quoted alphanumeric
+                     (equal (char symbol (- (length symbol) 1)) #\"))
+            (return-from validate nil))
+          (when (equal (length symbol) 1) ; Single characters
+            (when (upper-case-p (char symbol 0)) ; Make sure uppercase!
+              (return-from validate nil)
+            (return-from wfp-checker nil))) ; Single char, not uppercase letter
+          (when (digit-char-p (char symbol 1)) ; Uppercase letter, then numbers
+            (do ((j 1 (+ j 1)))
+              ((equal j (length symbol)))
+              (unless (digit-char-p (char symbol j)) ; Oops! Not all numbers
+                (return-from wfp-checker nil)))
+            (return-from validate nil)) ; Yes!  Letter then all numbers
+          (when (find symbol syntax :test #'equal) ; Look to be in syntax
+            (return-from validate nil))
+          (return-from wfp-checker nil)) ; All tests failed
+        
+        ;; Display what we've worked on - to use for stack later
+        (princ symbol)
+        (if (member next-char (list #\Space (char ")" 0)))
+            (princ next-char))))
     t))

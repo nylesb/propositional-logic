@@ -2,4 +2,6 @@
 (defparameter file (open "test-phrases.txt"))
 (do ((eof nil (not (listen file))))
   (eof)
-  (print (wfp-checker (read-line file))))
+  (let ((test-case (read-line file)))
+    (princ (format nil "Working on ~A~%  " test-case))
+    (print (wfp-checker test-case))))
