@@ -2,7 +2,7 @@
   "Input is a string of the proposition to check.
   Note: Quotes of the propsotion must be escaped, i.e. use \".
   Returns t if input is a well-formed proposition, nil otherwise."
-  (let ((syntax '(NOT AND OR IMPLIES EQUIV))
+  (let ((syntax '("NOT" "AND" "OR" "IMPLIES" "EQUIV"))
         (stack '()))
     ;;; Check input in two steps.  First verify parentheses and quotes are
     ;;; properly paired. Propositions use valid Lisp syntax, so the read function
@@ -23,16 +23,15 @@
         ;; or a valid syntax word
         (when (upper-case-p next-char)
           (setf next-char (char input (setf i (+ i 1))))
-          (vector-push-extend next-char symbol)
           (if (equal next-char #\Space) ; Was single uppercase
             (return))
-          (when (upper-case-p next-char) ; Must be only uppercase now
-            (loop do (setf next-char (char input (setf i (+ i 1))))
-              (if (equal next-char #\Space) (return))
-              (if (not (upper-case-p next-char)) ; Invalid form
-                  (return-from wfp-checker nil))
+          (when (upper-case-p next-char) ; Obtain full word
+            (loop do
               (vector-push-extend next-char symbol)
-             while (not (equal next-char #\Space))))
+              (setf next-char (char input (setf i (+ i 1))))
+             while (not (member next-char (list #\Space (char "(" 0) ))))
+            (unless (find symbol syntax :test #'equal) ; Check it is syntax
+              (return-from wfp-checker nil)))
           (when (digit-char-p next-char) ; Must be only numbers now
             (loop do (setf next-char (char input (setf i (+ i 1))))
               (when (equal next-char (char ")" 0))

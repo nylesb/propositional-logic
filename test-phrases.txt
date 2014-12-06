@@ -6,9 +6,12 @@
 (OR (P) (Q))
 (IMPLIES (P) (Q))
 (IMPLIES(P)(Q))
-(IMPlIES      (P)    (Q))
+(IMPLIES      (P)    (Q))
 (OR (NOT (NOT (P))) (Q))
 
+(JUNK (P) (Q))
+(NOT1 (P) (Q))
+(P1Q2)
 (IMPLIES (P) (Q)
 (Mary is happy)
 ("Mary is happy)
