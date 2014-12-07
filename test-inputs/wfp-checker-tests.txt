@@ -10,6 +10,9 @@
 (OR (NOT (NOT (P))) (Q))
 
 (q)
+((P) (Q))
+(IMPLIES (P))
+(EQUIV (P) (Q) (R))
 (JUNK (P) (Q))
 (NOT1 (P) (Q))
 (P1Q2)

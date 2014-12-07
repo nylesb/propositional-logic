@@ -1,0 +1,13 @@
+(|f| |b|)
+(P |a|)
+(P |a| |b|)
+(NOT (P |a|))
+(AND (P |a|) (Q |b|))
+(ALL |v| (P |v| (|f| |v|)))
+(EXISTS |x| (P |x| (|h| |x|)))
+
+(|m|)
+(|P|)
+(EXISTS (P |x|))
+(ALL |v|)
+(EXISTS |v| (P |v|) (P |v|))
