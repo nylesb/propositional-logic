@@ -17,3 +17,4 @@
 (Mary is happy)
 ("Mary is happy)
 (AND P Q)
+(AND (P Q) R)

@@ -36,12 +36,15 @@
         
         ;; Verify symbol is of the proper form
         (block validate
+          (unless (member next-char (list #\Space (char "(" 0) (char ")" 0)))
+            (return-from wfp-checker nil)) ; Symbol not preceeded by (
           (when (equal symbol "") ; Nothing to process
             (return-from validate nil))
           (when (and (equal (char symbol 0) #\") ; Quoted alphanumeric
                      (equal (char symbol (- (length symbol) 1)) #\"))
             (return-from validate nil))
-          (when (equal (length symbol) 1) ; Single characters
+          (when (and (equal (length symbol) 1) ; Single characters
+                     (equal next-char (char ")" 0))) ; Term properly enclosed
             (when (upper-case-p (char symbol 0)) ; Make sure uppercase!
               (return-from validate nil)
             (return-from wfp-checker nil))) ; Single char, not uppercase letter
@@ -58,5 +61,7 @@
         ;; Display what we've worked on - to use for stack later
         (princ symbol)
         (if (member next-char (list #\Space (char ")" 0)))
-            (princ next-char))))
+            (princ next-char))
+        (if (equal next-char (char "(" 0)) ; Phrase lacked spaces before (
+            (setf i (- i 1))))) ; Go back to fix this
     t))
