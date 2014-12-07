@@ -18,3 +18,4 @@
 ("Mary is happy)
 (AND P Q)
 (AND (P Q) R)
+(AND (AND) (P))

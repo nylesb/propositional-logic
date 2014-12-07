@@ -1,0 +1,4 @@
+((P t)) (NOT (P))
+((G t) (Q nil) (R t)) (IMPLIES (G) (Q))
+((P t) (Q nil)) (IMPLIES (P) (Q))
+((P1 nil) (Q1 nil) (R t)) (AND (NOT (P1)) (IMPLIES (P1) (Q1)))

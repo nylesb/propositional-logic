@@ -53,7 +53,7 @@
               ((equal j (length symbol)))
               (unless (digit-char-p (char symbol j)) ; Oops! Not all numbers
                 (return-from wfp-checker nil)))
-            (return-from validate nil)) ; Yes!  Letter then all numbers
+            (return-from validate nil)) ; Yes!  Letter, then all numbers
           (when (find symbol syntax :test #'equal) ; Look to be in syntax
             (return-from validate nil))
           (return-from wfp-checker nil)) ; All tests failed
@@ -65,3 +65,37 @@
         (if (equal next-char (char "(" 0)) ; Phrase lacked spaces before (
             (setf i (- i 1))))) ; Go back to fix this
     t))
+
+(defun TruthValue (assignment wfp)
+  "Evalutes wfp, a list, using rules given by assignment, which is a
+  list of pairs of the form (P t), where P is a term and t (or nil) is its
+  value for wfp."
+  (let ((wfp-string (format nil "~S" wfp)))
+    (flet ((replace-all (string part replacement &key (test #'char=))
+              "(From Common Lisp Cookbook)
+              Returns a new string in which all the occurences of the part 
+              is replaced with replacement."
+              (with-output-to-string (out)
+                (loop with part-length = (length part)
+                      for old-pos = 0 then (+ pos part-length)
+                      for pos = (search part string
+                                        :start2 old-pos
+                                        :test test)
+                      do (write-string string out
+                                       :start old-pos
+                                       :end (or pos (length string)))
+                      when pos do (write-string replacement out)
+                 while pos))))
+      (unless (wfp-checker wfp-string)
+        (return-from TruthValue "Oops!  Not a well-formed propositon"))
+      (defun implies (a b)
+        "Need to evaluate wfp.  Defined globally because defining in the flet
+        block made Lisp confused for some reason."
+        (or (not a) b))
+      (dolist (term assignment)
+        (setf wfp-string (replace-all wfp-string
+                           (concatenate 'string "(" (symbol-name (first term)) ")")
+                           (concatenate 'string "(eval " (symbol-name (second term)) ")"))))
+      (print wfp-string)
+      (with-input-from-string (in wfp-string)
+        (eval (read in))))))
