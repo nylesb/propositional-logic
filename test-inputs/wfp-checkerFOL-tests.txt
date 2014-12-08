@@ -1,4 +1,5 @@
 (|f| |b|)
+(P)
 (P |a|)
 (P |a| |b|)
 (NOT (P |a|))
@@ -8,6 +9,9 @@
 
 (|m|)
 (|P|)
+(|f|)
+((P) |a|)
 (EXISTS (P |x|))
+(ALL |x| |v|)
 (ALL |v|)
 (EXISTS |v| (P |v|) (P |v|))

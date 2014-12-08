@@ -152,24 +152,34 @@
                     ((or (equal term 'AND) (equal term 'OR))
                      (if (< rest-length 2)
                          (return-from verify-arg-number nil)))
+                    ((or (equal term 'ALL) (equal term 'EXISTS))
+                     (unless (and (= rest-length 2)
+                                  (listp (third phrase))
+                                  (or (equal (second phrase) '|u|)
+                                     (equal (second phrase) '|v|)
+                                     (equal (second phrase) '|w|)
+                                     (equal (second phrase) '|x|)
+                                     (equal (second phrase) '|y|)
+                                     (equal (second phrase) '|z|)))
+                       (return-from verify-arg-number nil)))
                     ((find (char (symbol-name term) 0) "fgh")
                      (if (= rest-length 0)
                          (return-from verify-arg-number nil)))
                     (is-arg t)
-                    ((find (char (symbol-name term) 0) "abcdeuvwz")
+                    ((find (char (symbol-name term) 0) "abcdeuvwxyz")
                      (if (not is-arg)
-                         (return-from verify-arg-number nil)))
-                    ((> rest-length 0) ; A single term, nothing may follow in its group
-                     (return-from verify-arg-number nil))))
+                         (return-from verify-arg-number nil)))))
             ;; Iterate on the remaining terms of the phrase
             (dolist (term (rest phrase))
-              (if (find (char (symbol-name (first phrase)) 0) "fgh")
+              (if (or (find (char (symbol-name (first phrase)) 0) "fgh")
+                      (and (= (length (symbol-name (first phrase))))
+                           (upper-case-p (char (symbol-name (first phrase)) 0))))
                   (unless (verify-arg-number term :is-arg t)
                     (return-from verify-arg-number nil))
                   (unless (verify-arg-number term)
                     (return-from verify-arg-number nil))))
             t))
-    (let ((syntax '("NOT" "AND" "OR" "IMPLIES" "EQUIV")))
+    (let ((syntax '("NOT" "AND" "OR" "IMPLIES" "EQUIV" "ALL" "EXISTS")))
       ;;; Check input in three steps.  First verify parentheses and quotes are
       ;;; properly paired. Propositions use valid Lisp syntax, so the read function
       ;;; will give an error if the proposition is not a well-formed S-exp.
@@ -215,14 +225,13 @@
             (when (and (equal (char symbol 0) #\") ; Quoted alphanumeric
                        (equal (char symbol (- (length symbol) 1)) #\"))
               (return-from validate t))
-            (when (and (equal (length symbol) 1) ; Single characters
-                       (equal next-char (char ")" 0))) ; Term properly enclosed
+            (when (equal (length symbol) 1) ; Single characters
               (when (upper-case-p (char symbol 0)) ; Is uppercase?
                 (return-from validate t)))
             (when (and (equal (length symbol) 3)
                        (equal (char symbol 0) #\|)
                        (equal (char symbol 2) #\|)
-                       (find (char symbol 1) "abcdefghuvwz"))
+                       (find (char symbol 1) "abcdefghuvwyxz"))
               (return-from validate t))
             (when (digit-char-p (char symbol 1)) ; Uppercase letter, then numbers
               (do ((j 1 (+ j 1)))
@@ -241,7 +250,6 @@
               (setf i (- i 1))))) ; Go back to fix this
       
       ;; Third step - verify proper number of arguments for syntax words
-      (print "at third")
       (with-input-from-string (phrase input)
         (unless (verify-arg-number (read phrase))
           (return-from wfp-checkerFOL nil)))
