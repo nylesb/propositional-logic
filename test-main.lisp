@@ -30,4 +30,4 @@
   (eof)
   (let ((test-case (read-line file)))
     (princ (format nil "Working on ~A~%  " test-case))
-    (print (wfp-checker test-case))))
+    (print (wfp-checkerFOL test-case))))

@@ -125,7 +125,6 @@
         (setf wfp-string (replace-all wfp-string
                            (concatenate 'string "(" (symbol-name (first term)) ")")
                            (concatenate 'string "(eval " (symbol-name (second term)) ")"))))
-      (print wfp-string)
       (with-input-from-string (in wfp-string)
         (eval (read in))))))
 
@@ -134,24 +133,41 @@
   Returns t if input is a well-formed proposition, nil otherwise.
   (Since input a str, double quotes of the propsotion must be escaped, i.e. use \".)
   (AND/OR can take any number of arguments and be a wfp still.)"
-  (labels ((verify-number (phrase)
+  (labels ((verify-arg-number (phrase &key is-arg)
             "Phrase is a list representing a proposition.  Recursively verifies each
-            syntax word has proper num of arguments.  Returns nil if not."
+            syntax word has proper num of arguments.  Returns nil if not.
+            :flag sends message if phrase is part of predicate or function."
+            (unless (listp phrase)
+              (setf phrase (list phrase)))
             (let ((term (first phrase))
                   (rest-length (length (rest phrase))))
+              ;; Cases determine type of term we're looking at.  IF it matches
+              ;; one form completely, it will pass through this cond without
+              ;; returning nil to the overall function.
               (cond ((equal term 'NOT) (if (/= rest-length 1)
-                                           (return-from verify-number nil)))
+                                           (return-from verify-arg-number nil)))
                     ((or (equal term 'IMPLIES) (equal term 'EQUIV))
                      (if (/= rest-length 2)
-                         (return-from verify-number nil)))
+                         (return-from verify-arg-number nil)))
                     ((or (equal term 'AND) (equal term 'OR))
                      (if (< rest-length 2)
-                         (return-from verify-number nil)))
+                         (return-from verify-arg-number nil)))
+                    ((find (char (symbol-name term) 0) "fgh")
+                     (if (= rest-length 0)
+                         (return-from verify-arg-number nil)))
+                    (is-arg t)
+                    ((find (char (symbol-name term) 0) "abcdeuvwz")
+                     (if (not is-arg)
+                         (return-from verify-arg-number nil)))
                     ((> rest-length 0) ; A single term, nothing may follow in its group
-                     (return-from verify-number nil))))
+                     (return-from verify-arg-number nil))))
+            ;; Iterate on the remaining terms of the phrase
             (dolist (term (rest phrase))
-              (unless (verify-number term)
-                (return-from verify-number nil)))
+              (if (find (char (symbol-name (first phrase)) 0) "fgh")
+                  (unless (verify-arg-number term :is-arg t)
+                    (return-from verify-arg-number nil))
+                  (unless (verify-arg-number term)
+                    (return-from verify-arg-number nil))))
             t))
     (let ((syntax '("NOT" "AND" "OR" "IMPLIES" "EQUIV")))
       ;;; Check input in three steps.  First verify parentheses and quotes are
@@ -164,7 +180,7 @@
       ;; avoid potential errors when validating bad expressions in step two.
       (with-input-from-string (phrase input)
         (unless (ignore-errors (read phrase))
-          (return-from wfp-checker nil)))
+          (return-from wfp-checkerFOL nil)))
       
       ;; Second step - Verify proper terms and syntax are used.
       (do* ((i 0 (+ i 1)))
@@ -174,7 +190,8 @@
                                      :fill-pointer 0
                                      :adjustable t)))
           ;; Obtain the next symbol
-          (when (equal next-char (char "(" 0))
+          (when (or (equal next-char (char "(" 0)) (equal next-char #\|))
+            (if (equal next-char #\|) (setf i (- i 1))) ; Don't skip | symbol
             (setf next-char (char input (setf i (+ i 1))))
             (if (equal #\" next-char) ; Checks for quoted atomiic expressions
                 (progn (vector-push-extend next-char symbol)
@@ -183,7 +200,7 @@
                         while (not (equal next-char #\")))
                        (setf next-char (char input (setf i (+ i 1))))
                        (unless (equal next-char (char ")" 0)) ; ) must follow closing quote
-                         (retun-from wfp-checker nil)))
+                         (retun-from wfp-checkerFOL nil)))
                 (loop do ; Otherwise, just build up our symbol
                   (vector-push-extend next-char symbol)
                   (setf next-char (char input (setf i (+ i 1))))
@@ -192,7 +209,7 @@
           ;; Verify symbol is of the proper form
           (block validate
             (unless (member next-char (list #\Space (char "(" 0) (char ")" 0)))
-              (return-from wfp-checker nil)) ; Symbol not preceeded by (
+              (return-from wfp-checkerFOL nil)) ; Symbol not preceeded by (
             (when (equal symbol "") ; Nothing to process
               (return-from validate t))
             (when (and (equal (char symbol 0) #\") ; Quoted alphanumeric
@@ -200,19 +217,22 @@
               (return-from validate t))
             (when (and (equal (length symbol) 1) ; Single characters
                        (equal next-char (char ")" 0))) ; Term properly enclosed
-              (when (upper-case-p (char symbol 0)) ; Make sure uppercase!
-                (return-from validate t)
-              (return-from wfp-checker nil))) ; Single char, not uppercase letter
+              (when (upper-case-p (char symbol 0)) ; Is uppercase?
+                (return-from validate t)))
+            (when (and (equal (length symbol) 3)
+                       (equal (char symbol 0) #\|)
+                       (equal (char symbol 2) #\|)
+                       (find (char symbol 1) "abcdefghuvwz"))
+              (return-from validate t))
             (when (digit-char-p (char symbol 1)) ; Uppercase letter, then numbers
               (do ((j 1 (+ j 1)))
                 ((equal j (length symbol)))
                 (unless (digit-char-p (char symbol j)) ; Oops! Not all numbers
-                  (return-from wfp-checker nil)))
+                  (return-from wfp-checkerFOL nil)))
               (return-from validate t)) ; Yes!  Letter, then all numbers
             (when (find symbol syntax :test #'equal) ; Look to be in syntax
               (return-from validate t))
-            (return-from wfp-checker nil)) ; All tests failed
-          
+            (return-from wfp-checkerFOL nil)) ; All tests failed
           ;; Uncomment below to display what was worked on
           ;;(princ symbol)
           ;;(if (member next-char (list #\Space (char ")" 0)))
@@ -221,7 +241,8 @@
               (setf i (- i 1))))) ; Go back to fix this
       
       ;; Third step - verify proper number of arguments for syntax words
+      (print "at third")
       (with-input-from-string (phrase input)
-        (unless (verify-number (read phrase))
-          (return-from wfp-checker nil)))
+        (unless (verify-arg-number (read phrase))
+          (return-from wfp-checkerFOL nil)))
       t)))
