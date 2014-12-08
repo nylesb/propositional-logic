@@ -1,0 +1,105 @@
+;; Here is my STRIPS planning representation.  This document is in three parts.  THe first describes the STRIPS planning we need to represent and solve this problem, and does so in a very descriptive nature.  However, while still following the logic rules, the particular words used do not match our work from parts a-c of this assignment.  As such, the second part of this document translates the representation given in part 1 into propositions which the functions I wrote can verify to be well-formed propositions.  The third part gives the planning necessary to solve the problem.
+
+=========== Part 1: Descriptive ==========
+
+;; States
+Initial state:
+    At(pos1, monkey) ^ At(pos2, bananas) ^ At(pos3, box) ^ EmptyHands ^ Low
+Goal:
+    Has(bananas)
+
+;; Actions (~ represents negation, and effects in two lines for add/delete lists)
+MonkeyWalk(x, y)
+    Precondition: At(x, monkey)
+    Effects: At(y, monkey)
+             ~At(x, monkey)
+
+PickUpBox(x)
+    Precondition: At(x, monkey), At(x, box), EmptyHands, Low
+    Effects: Has(box)
+             ~At(x, box), ~EmptyHands
+
+PlaceBox(x)
+    Precondition: At(x, monkey), Has(box)
+    Effects: EmptyHands, At(x, box)
+             ~Has(box)
+
+Climb(x)
+    Precondition: At(x, monkey), At(x, box), Low
+    Effects: High
+             ~Low
+
+TakeBananas(x)
+    Preconditions: At(x, monkey), At(x, bananas), High, EmptyHands
+    Effects: Has(bananas)
+             ~EmptyHands
+
+========== Part 2: Translation to wfp ========== 
+
+;; A note here is that the labels are highly awkward because the wfp-checkerFOL as created in part c of this assignment gives us a very narrow set of characters to use.  In fact I had to extend this slightly by adding lowercase letters with numbers after them to accomodate all the constants needed.
+
+;; Labels
+Constants:
+    (a, monkey); (b, box); (c, bananas); (d1, pos1); (d2, pos2); (d3, pos3)
+Predicates:
+    A: At
+    E: EmptyHands
+    L: Low
+    H: Has
+    I: High
+
+;; States
+Initial state: (AND (A |d1| |a|) (A |d2| |c|) (A |d3| |b|) (E) (L))
+Goal: (H |c|)
+
+;; Actions
+MonkeyWalk(x, y)
+    Precondition: (A |x| |a|)
+    Effects: (A |y| |a|)
+             (NOT (A |x| |a|))
+
+PickUpBox(x)
+    Precondition: (AND (A |x| |a|) (A |x| |b|) (E) (L))
+    Effects: (H |b|)
+             (AND (NOT (A |x| |b|)) (NOT (E)))
+
+PlaceBox(x)
+    Precondition: (AND (A |x| |a|) (H |b|))
+    Effects: (AND (E) (A |x| |b|))
+             (NOT (H |b|))
+
+Climb(x)
+    Precondition: (AND (A |x| |a|) (A |x| |b|) (L))
+    Effects: (I)
+             (NOT (L))
+
+TakeBananas(x)
+    Preconditions: (AND (A |x| |a|) (A |x| |c|) (I) (E))
+    Effects: (H |c|)
+             (NOT (E))
+
+========== Part 3: Plan ==========
+
+;; Here is the plan I have come up with.  In each step I give the state of the world after the action has been performed.
+
+Initial: At(pos1, monkey) ^ At(pos2, bananas) ^ At(pos3, box) ^ EmptyHands ^ Low
+
+Action 1: MonkeyWalk(pos1, pos3)
+Result: At(pos3, monkey) ^ At(pos2, bananas) ^ At(pos3, box) ^ EmptyHands ^ Low
+
+Action 2: PickUp(pos3)
+Result: At(pos3, monkey) ^ At(pos2, bananas) ^ Low ^ Has(box)
+
+Action 3: MonkeyWalk(pos3, pos2)
+Result: At(pos2, monkey) ^ At(pos2, bananas) ^ Low ^ Has(box)
+
+Action 4: PlaceBox(pos2)
+Result: At(pos2, monkey) ^ At(pos2, bananas) ^ Low ^ EmptyHands ^ At(pos2, box)
+
+Action 5: Climb(pos2)
+Result: At(pos2, monkey) ^ At(pos2, bananas) ^ EmptyHands ^ At(pos2, box) ^ High
+
+Action 6: TakeBananas(pos2)
+Result: At(pos2, monkey) ^ At(pos2, bananas) ^ EmptyHands ^ At(pos2, box) ^ High ^ Has(bananas)
+
+End goal of Has(bananas) has been acheived.

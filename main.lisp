@@ -118,9 +118,12 @@
       (unless (wfp-checker wfp-string)
         (return-from TruthValue "Oops!  Not a well-formed propositon"))
       (defun implies (a b)
-        "Need to evaluate wfp.  Defined globally because defining in the flet
+        "Needed to evaluate wfp.  Defined globally because defining in the flet
         block made Lisp confused for some reason."
         (or (not a) b))
+      (defun equiv (a b)
+        "Needed to evaluate wfp, same as function #'implies above."
+        (equal a b))
       (dolist (term assignment)
         (setf wfp-string (replace-all wfp-string
                            (concatenate 'string "(" (symbol-name (first term)) ")")
@@ -254,3 +257,10 @@
         (unless (verify-arg-number (read phrase))
           (return-from wfp-checkerFOL nil)))
       t)))
+
+(defclass operator ()
+  ((name :initarg :name :accessor name)
+   (arguments :initarg :arguments :accessor arguments)
+   (preconditions :initarg :preconditions :accessor preconditions)
+   (add-list :initarg :add-list :accessor add-list)
+   (delete-list :initarg :delete-list :accessor delete-list)))

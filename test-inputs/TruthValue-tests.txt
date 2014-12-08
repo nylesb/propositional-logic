@@ -1,4 +1,10 @@
-((P t)) (NOT (P))
+
+((P nil)) (NOT (P))
+((A t) (B nil)) (OR (A) (B))
+((R t) (Z t)) (AND (R) (Z))
+((P t) (Q t)) (IMPLIES (P) (Q))
+((P nil) (Q nil)) (EQUIV (P) (Q))
+((P1 nil) (Q1 nil) (R t)) (AND (NOT (P1)) (IMPLIES (P1) (Q1)))
+
 ((G t) (Q nil) (R t)) (IMPLIES (G) (Q))
 ((P t) (Q nil)) (IMPLIES (P) (Q))
-((P1 nil) (Q1 nil) (R t)) (AND (NOT (P1)) (IMPLIES (P1) (Q1)))
